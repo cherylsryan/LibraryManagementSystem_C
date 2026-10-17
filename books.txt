@@ -1,0 +1,9 @@
+BookID|Title|Author|ISBN|Category|Quantity|AvailableCopies
+B001|Jurassic Park|Michael Crichton|12345678|Fiction|1|1
+B002|Matilda|Roald Dahl|22345678|Children's|4|4
+B003|Educated|Tara Westover|32345678|Non-Fiction|7|7
+B004|Books Lover|Emily Henry|42345678|Romance|10|10
+B005|Bismillah|Karimah|88888888|Horror|33|33
+B006|Jurassic World|Michael Crichton|62345678|Fiction|8|8
+B007|Harry Potter|J.K. Rowling|99999999|Fantasy|6|6
+B008|IlikeSandwich|IlikeAisKrim|32135642|Science Fiction|12|12

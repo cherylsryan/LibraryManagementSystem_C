@@ -1,0 +1,1025 @@
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+#include <cctype>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+struct User
+{
+    string username;
+    string password;
+    string role;
+    string memberID;
+};
+
+struct Member
+{
+    string memberID;
+    string memberName;
+    string phoneNum;
+    string email;
+    string membershipType;
+    string membershipStatus;
+};
+
+vector<Member> members;
+
+void pauseScreen(){
+    cout << "\nPress Enter to continue...";
+    cin.ignore();
+    cin.get();
+}
+
+void clearScreen(){
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+// file handling functions
+void saveMembers(){
+    ofstream file("members.txt");
+
+    if (!file){
+        cout << "\nError: Unable to save member data.\n";
+        return;
+    }
+
+    for (const Member& member : members){
+        file << member.memberID << "|" << member.memberName << "|"
+            << member.phoneNum << "|" << member.email << "|"
+            << member.membershipType << "|" << member.membershipStatus << endl;
+    }
+    file.close();
+}
+
+void loadMembers(){
+    ifstream file("members.txt");
+
+    if (!file) {
+        return;
+    }
+
+    members.clear();
+
+    string line;
+    while (getline(file, line)) {
+        if (line.empty()) {
+            continue;
+        }
+
+        Member member;
+        stringstream ss(line);
+
+        getline(ss, member.memberID, '|');
+        getline(ss, member.memberName, '|');
+        getline(ss, member.phoneNum, '|');
+        getline(ss, member.email, '|');
+        getline(ss, member.membershipType, '|');
+        getline(ss, member.membershipStatus);
+
+        members.push_back(member);
+    }
+
+    file.close();
+}
+
+bool validName(const string& name){
+    if (name.empty()){
+        return false;
+    }
+
+    for (char c : name){
+        if (!isalpha(c) && c != ' '){
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool validEmail(const string& email){
+    int atCount = 0;
+    int dotCount = 0;
+    int atPosition = -1;
+    int dotPosition = -1;
+
+    for (int i = 0; i < email.length(); i++){
+        if (email[i] == '@'){
+            atCount++;
+            atPosition = i;
+        }
+
+        if (email[i] == '.'){
+            dotCount++;
+            dotPosition = i;
+        }
+    }
+
+    if (email.empty()){
+        return false;
+    }
+
+    if (atCount != 1){
+        return false;
+    }
+
+    if (dotCount < 1){
+        return false;
+    }
+
+    if (atPosition == 0){
+        return false;
+    }
+
+    if (dotPosition <= atPosition + 1){
+        return false;
+    }
+    return true;
+}
+
+bool validPhone(const string& phone){
+    // Check if empty
+    if (phone.empty()){
+        return false;
+    }
+
+    // Check if all characters are digits
+    for (char c : phone){
+        if (!isdigit(c)){
+            return false;
+        }
+    }
+
+    // Check length
+    if (phone.length() < 10 || phone.length() > 11){
+        return false;
+    }
+    return true;
+}
+
+string toUpperCase(string text){
+    for (char& c : text)
+    {
+        c = toupper(c);
+    }
+    return text;
+}
+
+int getIntInput(){
+    int choice;
+
+    while (true){
+        cin >> choice;
+
+        if (!cin.fail()){
+            return choice;
+        }
+
+        cin.clear();
+        cin.ignore(1000, '\n');
+        cout << "Invalid input!\nPlease enter a number: ";
+    }
+}
+
+string generateMemberID(){
+    int highestID = 0;
+    for (const Member& member : members)
+    {
+        if (member.memberID.length() > 1 &&
+            member.memberID[0] == 'M')
+        {
+            try
+            {
+                int currentID = stoi(member.memberID.substr(1));
+
+                if (currentID > highestID)
+                {
+                    highestID = currentID;
+                }
+            }
+            catch (...)
+            {
+                // Ignore invalid Member ID
+            }
+        }
+    }
+
+    highestID++;
+
+    string memberID = "M";
+    if (highestID < 10)
+    {
+        memberID += "00" + to_string(highestID);
+    }
+    else if (highestID < 100)
+    {
+        memberID += "0" + to_string(highestID);
+    }
+    else
+    {
+        memberID += to_string(highestID);
+    }
+    return memberID;
+}
+
+// add member function
+void addMember()
+{
+    cout << "\n=============================================\n";
+    cout << "              ADD NEW MEMBER\n";
+    cout << "=============================================\n";
+
+    Member newMember;
+
+    // Generate Member ID
+    newMember.memberID = generateMemberID();
+
+    cout << "Member ID: " << newMember.memberID << endl;
+
+    cin.ignore();
+
+    // Member Name
+    while (true)
+    {
+        cout << "Enter Member Name: ";
+        getline(cin, newMember.memberName);
+
+        if (validName(newMember.memberName)){
+            break;
+        }
+
+        cout << "Invalid name. Name can only contain letters and spaces.\n";
+    }
+
+    // Phone Number
+    while (true)
+    {
+        cout << "Enter Phone Number: ";
+        getline(cin, newMember.phoneNum);
+
+        if (validPhone(newMember.phoneNum)){
+            break;
+        }
+
+        cout << "Invalid phone number. Please enter 10 or 11 digits only.\n";
+    }
+
+    // Email
+    while (true)
+    {
+        cout << "Enter Email: ";
+        getline(cin, newMember.email);
+
+        if (validEmail(newMember.email)){
+            break;
+        }
+
+        cout << "Invalid email format.\n";
+    }
+
+    // Membership Type
+    int typeChoice;
+
+    while (true)
+    {
+        cout << "\nSelect Membership Type:\n";
+        cout << "1. Student\n";
+        cout << "2. Staff\n";
+        cout << "3. Public\n";
+        cout << "Enter choice: ";
+        typeChoice = getIntInput();
+
+        if (typeChoice == 1){
+            newMember.membershipType = "Student";
+            break;
+        }
+        else if (typeChoice == 2){
+            newMember.membershipType = "Staff";
+            break;
+        }
+        else if (typeChoice == 3){
+            newMember.membershipType = "Public";
+            break;
+        }
+        else{
+            cout << "Invalid choice. Please enter 1-3.\n";
+        }
+    }
+
+    // Default Status
+    newMember.membershipStatus = "Active";
+
+    // Add to vector
+    members.push_back(newMember);
+
+    // Save to file
+    saveMembers();
+
+    cout << "\nMember added successfully!\n";
+    cout << "---------------------------------------------\n";
+    cout << "Member ID       : " << newMember.memberID << endl;
+    cout << "Member Name     : " << newMember.memberName << endl;
+    cout << "Phone Number    : " << newMember.phoneNum << endl;
+    cout << "Email           : " << newMember.email << endl;
+    cout << "Membership Type : " << newMember.membershipType << endl;
+    cout << "Status          : " << newMember.membershipStatus << endl;
+    cout << "---------------------------------------------\n";
+}
+
+// display all members function
+void displayMembers()
+{
+    cout << "\n==========================================================\n";
+    cout << "                    ALL MEMBERS\n";
+    cout << "==========================================================\n";
+
+    if (members.empty())
+    {
+        cout << "\nNo members found.\n";
+        return;
+    }
+
+    cout << "\n"
+        << left << setw(10) << "ID" << setw(20) << "Name"
+        << setw(15) << "Phone" << setw(30) << "Email" 
+        << setw(15) << "Type" << setw(12) << "Status" << endl;
+
+    cout << "-------------------------------------------------------------------------------------------------\n";
+
+    for (const Member& member : members)
+    {
+        cout << left
+            << setw(10) << member.memberID << setw(20) << member.memberName
+            << setw(15) << member.phoneNum << setw(30) << member.email
+            << setw(15) << member.membershipType << setw(12) << member.membershipStatus << endl;
+    }
+
+    cout << "-------------------------------------------------------------------------------------------------\n";
+    cout << "Total Members: " << members.size() << endl;
+}
+
+// search member function
+void searchMember()
+{
+    cout << "\n=============================================\n";
+    cout << "              SEARCH MEMBER\n";
+    cout << "=============================================\n";
+
+    string searchID;
+
+    cout << "Enter Member ID: ";
+    cin >> searchID;
+    searchID = toUpperCase(searchID);
+
+    for (const Member& member : members)
+    {
+        if (member.memberID == searchID)
+        {
+            cout << "\nMember found!\n";
+            cout << "---------------------------------------------\n";
+            cout << "Member ID       : " << member.memberID << endl;
+            cout << "Member Name     : " << member.memberName << endl;
+            cout << "Phone Number    : " << member.phoneNum << endl;
+            cout << "Email           : " << member.email << endl;
+            cout << "Membership Type : " << member.membershipType << endl;
+            cout << "Status          : " << member.membershipStatus << endl;
+            cout << "---------------------------------------------\n";
+
+            return;
+        }
+    }
+
+    cout << "\nMember with ID " << searchID << " not found.\n";
+}
+
+// update member function
+void updateMember()
+{
+    cout << "\n=============================================\n";
+    cout << "              UPDATE MEMBER\n";
+    cout << "=============================================\n";
+
+    string searchID;
+
+    cout << "Enter Member ID: ";
+    cin >> searchID;
+    searchID = toUpperCase(searchID);
+
+    for (Member& member : members)
+    {
+        if (member.memberID == searchID){
+            int choice;
+
+            while (true)
+            {
+                cout << "\n---------------------------------------------\n";
+                cout << "Member ID       : " << member.memberID << endl;
+                cout << "Member Name     : " << member.memberName << endl;
+                cout << "Phone Number    : " << member.phoneNum << endl;
+                cout << "Email           : " << member.email << endl;
+                cout << "Membership Type : " << member.membershipType << endl;
+                cout << "---------------------------------------------\n";
+
+                cout << "\nWhat do you want to update?\n";
+                cout << "1. Member Name\n";
+                cout << "2. Phone Number\n";
+                cout << "3. Email\n";
+                cout << "4. Membership Type\n";
+                cout << "5. Membership Status\n";
+                cout << "6. Back\n";
+                cout << "Enter choice: ";
+				choice = getIntInput();
+
+                // Update Name
+                if (choice == 1)
+                {
+                    cin.ignore();
+
+                    cout << "Enter New Name: ";
+                    getline(cin, member.memberName);
+
+                    if (validName(member.memberName))
+                    {
+                        saveMembers();
+                        cout << "Name updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid name. Name can only contain letters and spaces.\n";
+                    }
+                }
+
+                // Update Phone
+                else if (choice == 2)
+                {
+                    cin.ignore();
+
+                    cout << "Enter New Phone Number: ";
+                    getline(cin, member.phoneNum);
+
+                    if (validPhone(member.phoneNum))
+                    {
+                        saveMembers();
+                        cout << "Phone number updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid phone number. Please enter 10 or 11 digits only.\n";
+                    }
+                }
+
+                // Update Email
+                else if (choice == 3)
+                {
+                    cin.ignore();
+
+                    cout << "Enter New Email: ";
+                    getline(cin, member.email);
+
+                    if (validEmail(member.email)){
+                        saveMembers();
+                        cout << "Email updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid email format.\n";
+                    }
+                }
+
+                // Update Membership Type
+                else if (choice == 4)
+                {
+                    int typeChoice;
+
+                    cout << "\n1. Student\n";
+                    cout << "2. Staff\n";
+                    cout << "3. Public\n";
+                    cout << "Enter choice: ";
+                    typeChoice = getIntInput();
+
+                    if (typeChoice == 1)
+                    {
+                        member.membershipType = "Student";
+                    }
+                    else if (typeChoice == 2)
+                    {
+                        member.membershipType = "Staff";
+                    }
+                    else if (typeChoice == 3)
+                    {
+                        member.membershipType = "Public";
+                    }
+                    else
+                    {
+                        cout << "Invalid choice.\n";
+                        continue;
+                    }
+
+                    saveMembers();
+                    cout << "Membership type updated successfully!\n";
+                }
+
+                // Update Membership Status
+                else if (choice == 5)
+                {
+                    int statusChoice;
+
+                    cout << "\nSelect Membership Status:\n";
+                    cout << "1. Active\n";
+                    cout << "2. Inactive\n";
+                    cout << "3. Suspended\n";
+                    cout << "Enter choice: ";
+
+                    statusChoice = getIntInput();
+
+                    if (statusChoice == 1){
+                        member.membershipStatus = "Active";
+                    }
+                    else if (statusChoice == 2){
+                        member.membershipStatus = "Inactive";
+                    }
+                    else if (statusChoice == 3){
+                        member.membershipStatus = "Suspended";
+                    }
+                    else{
+                        cout << "Invalid choice. Please enter 1-3.\n";
+                        continue;
+                    }
+
+                    saveMembers();
+                    cout << "Membership status updated successfully!\n";
+                }
+
+                // Back
+                else if (choice == 6)
+                {
+                    return;
+                }
+            }
+        }
+    }
+    cout << "\nMember with ID " << searchID << " not found.\n";
+}
+
+// delete member function
+void deleteMember(){
+    while (true)
+    {
+        cout << "\n=============================================\n";
+        cout << "              DELETE MEMBER\n";
+        cout << "=============================================\n";
+
+        string searchID;
+
+        cout << "Enter Member ID (or 0 to cancel): ";
+        cin >> searchID;
+        searchID = toUpperCase(searchID);
+
+        if (searchID == "0")
+        {
+            cout << "\nDelete cancelled.\n";
+            return;
+        }
+
+        bool found = false;
+
+        for (int i = 0; i < members.size(); i++)
+        {
+            if (members[i].memberID == searchID)
+            {
+                found = true;
+
+                cout << "\nMember found!\n";
+                cout << "---------------------------------------------\n";
+                cout << "Member ID       : " << members[i].memberID << endl;
+                cout << "Member Name     : " << members[i].memberName << endl;
+                cout << "Membership Type : " << members[i].membershipType << endl;
+                cout << "Status          : " << members[i].membershipStatus << endl;
+                cout << "---------------------------------------------\n";
+
+                char confirmation;
+
+                cout << "Delete this member? (Y/N): ";
+                cin >> confirmation;
+
+                if (confirmation == 'Y' || confirmation == 'y'){
+                    members.erase(members.begin() + i);
+                    saveMembers();
+                    cout << "\nMember deleted successfully!\n";
+                }
+                else{
+                    cout << "\nDelete cancelled.\n";
+                }
+                return;
+            }
+        }
+
+        // If ID was not found
+        if (!found){
+            cout << "\nMember with ID " << searchID << " not found.\n";
+            cout << "Please enter a valid Member ID.\n";
+        }
+    }
+}
+
+// member management menu 
+void memberManagement()
+{
+    int choice;
+    while (true)
+    {
+        clearScreen();
+
+        cout << "\n=============================================\n";
+        cout << "           MEMBER MANAGEMENT\n";
+        cout << "=============================================\n";
+        cout << "1. Add Member\n";
+        cout << "2. Display All Members\n";
+        cout << "3. Search Member\n";
+        cout << "4. Update Member\n";
+        cout << "5. Delete Member\n";
+        cout << "6. Back\n";
+        cout << "=============================================\n";
+        
+        cout << "Enter choice: ";
+        choice = getIntInput();
+
+        switch (choice){
+        case 1:
+            addMember();
+            pauseScreen();
+            break;
+
+        case 2:
+            displayMembers();
+            pauseScreen();
+            break;
+
+        case 3:
+            searchMember();
+            pauseScreen();
+            break;
+
+        case 4:
+            updateMember();
+            pauseScreen();
+            break;
+
+        case 5:
+            deleteMember();
+            pauseScreen();
+            break;
+
+        case 6:
+            return;
+
+        default:
+            cout << "\nInvalid choice. Please enter 1-6.\n";
+            pauseScreen();
+        }
+    }
+}
+
+// member profile functions
+void viewProfile(const string& memberID)
+{
+	clearScreen();
+    cout << "\n=============================================\n";
+    cout << "                MY PROFILE\n";
+    cout << "=============================================\n";
+
+    for (const Member& member : members)
+    {
+        if (member.memberID == memberID)
+        {
+            cout << "Member ID       : " << member.memberID << endl;
+            cout << "Member Name     : " << member.memberName << endl;
+            cout << "Phone Number    : " << member.phoneNum << endl;
+            cout << "Email           : " << member.email << endl;
+            cout << "Membership Type : " << member.membershipType << endl;
+            cout << "Status          : " << member.membershipStatus << endl;
+
+            return;
+        }
+    }
+    cout << "Profile not found.\n";
+}
+
+void editProfile(const string& memberID)
+{
+    cout << "\n=============================================\n";
+    cout << "              EDIT MY PROFILE\n";
+    cout << "=============================================\n";
+
+    for (Member& member : members)
+    {
+        if (member.memberID == memberID)
+        {
+            int choice;
+
+            while (true)
+            {
+                cout << "\n1. Edit Name\n";
+                cout << "2. Edit Phone Number\n";
+                cout << "3. Edit Email\n";
+                cout << "4. Back\n";
+                cout << "Enter choice: ";
+
+                choice = getIntInput();
+
+                if (choice == 1){
+                    cin.ignore();
+
+                    string newName;
+
+                    cout << "Enter New Name: ";
+                    getline(cin, newName);
+
+                    if (validName(newName))
+                    {
+                        member.memberName = newName;
+                        saveMembers();
+                        cout << "Name updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid name. Name can only contain letters and spaces.\n";
+                    }
+                }
+
+                else if (choice == 2) {
+                    cin.ignore();
+
+                    string newPhone;
+
+                    cout << "Enter New Phone Number: ";
+                    getline(cin, newPhone);
+
+                    if (validPhone(newPhone))
+                    {
+                        member.phoneNum = newPhone;
+                        saveMembers();
+                        cout << "Phone number updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid phone number. Please enter 10 or 11 digits only.\n";
+                    }
+                }
+
+                else if (choice == 3){
+                    cin.ignore();
+
+                    cout << "Enter New Email: ";
+                    getline(cin, member.email);
+
+                    if (validEmail(member.email)) {
+                        saveMembers();
+                        cout << "Email updated successfully!\n";
+                    }
+                    else
+                    {
+                        cout << "Invalid email format.\n";
+                    }
+                }
+
+                else if (choice == 4){
+                    return;
+                }
+
+                else{
+                    cout << "Invalid choice.\n";
+                }
+            }
+        }
+    }
+    cout << "Profile not found.\n";
+}
+
+// login function to authenticate users
+bool login(string& loggedInRole,string& loggedInMemberID)
+{
+    string username;
+    string password;
+
+    cout << "Welcome to the Smart Library Management System!\n";
+    cout << "Please log in to continue.\n\n";
+
+    cout << "Username: ";
+    cin >> username;
+
+    cout << "Password: ";
+    cin >> password;
+
+    ifstream file("users.txt");
+
+    if (!file)
+    {
+        cout << "\nError: Unable to open users.txt\n";
+        return false;
+    }
+
+    string line;
+
+    while (getline(file, line)) {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        string storedUsername;
+        string storedPassword;
+        string storedRole;
+        string storedMemberID;
+
+        stringstream ss(line);
+
+        getline(ss, storedUsername, '|');
+        getline(ss, storedPassword, '|');
+        getline(ss, storedRole, '|');
+        getline(ss, storedMemberID);
+
+        // Check login
+        if (username == storedUsername && password == storedPassword)
+        {
+            loggedInRole = storedRole;
+            loggedInMemberID = toUpperCase(storedMemberID);
+
+            file.close();
+
+            cout << "\nLogin successful!\n";
+            cout << "Welcome " << username << "!\n";
+
+            pauseScreen();
+
+            return true;
+        }
+    }
+
+    file.close();
+
+    cout << "\nInvalid username or password.\n";
+    cout << "Please check your credentials again.\n\n";
+    return false;
+}
+
+// admin menu function
+void adminMenu()
+{
+    int choice;
+    while (true)
+    {
+        clearScreen();
+
+        cout << "\n=============================================\n";
+        cout << "                 ADMIN MENU\n";
+        cout << "=============================================\n";
+        cout << "1. Member Management\n";
+        cout << "2. Book Management\n";
+        cout << "3. Borrowing & Returning Management\n";
+        cout << "4. Reporting & Fine Management\n";
+        cout << "0. Logout\n";
+        cout << "=============================================\n";
+
+        cout << "Enter choice: ";
+        choice = getIntInput();
+
+        switch (choice){
+        case 1:
+            memberManagement();
+            break;
+
+        case 2:
+            cout << "\nBook Management coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 3:
+            cout << "\nBorrowing & Returning Management coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 4:
+            cout << "\nReporting & Fine Management coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 0:
+            cout << "\nLogging out...\n";
+            return;
+
+        default:
+            cout << "\nInvalid choice. Please enter 1-5.\n";
+            pauseScreen();
+        }
+    }
+}
+
+// member menu function
+void memberMenu(const string& memberID){
+    int choice;
+
+    while (true)
+    {
+        clearScreen();
+
+        cout << "\n=============================================\n";
+        cout << "                MEMBER MENU\n";
+        cout << "=============================================\n";
+        cout << "1. My Profile\n";
+        cout << "2. Book Management\n";
+        cout << "3. Borrowing & Returning\n";
+        cout << "4. Reporting & Fine Management\n";
+        cout << "0. Logout\n";
+        cout << "=============================================\n";
+
+        cout << "Enter choice: ";
+        choice = getIntInput();
+
+        switch (choice){
+        case 1:
+
+            cout << "\n=============================================\n";
+            cout << "                 MY PROFILE\n";
+            cout << "=============================================\n";
+            cout << "1. View Profile\n";
+            cout << "2. Edit Profile\n";
+            cout << "3. Back\n";
+            cout << "=============================================\n";
+            cout << "Enter choice: ";
+
+            int profileChoice;
+            profileChoice = getIntInput();
+
+            if (profileChoice == 1){
+                viewProfile(memberID);
+                pauseScreen();
+            }
+            else if (profileChoice == 2){
+                editProfile(memberID);
+            }
+            else if (profileChoice != 3){
+                cout << "\nInvalid choice.\n";
+                pauseScreen();
+            }
+            break;
+
+        case 2:
+            cout << "\nBook Management coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 3:
+            cout << "\nBorrowing & Returning coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 4:
+            cout << "\nReporting & Fine Management coming soon...\n";
+            pauseScreen();
+            break;
+
+        case 0:
+            cout << "\nLogging out...\n";
+            return;
+
+        default:
+            cout << "\nInvalid choice. Please enter 1-5.\n";
+            pauseScreen();
+        }
+    }
+}
+
+// main function
+int main(){
+    loadMembers();
+
+    string loggedInRole;
+    string loggedInMemberID;
+
+    while (!login(loggedInRole, loggedInMemberID)) {
+		// Loop until successful login
+    }
+
+    clearScreen();
+
+    if (loggedInRole == "Admin"){
+        adminMenu();
+    }
+    else if (loggedInRole == "Member"){
+        memberMenu(loggedInMemberID);
+    }
+    else{
+        cout << "\nInvalid user role.\n";
+    }
+
+    cout << "\nThank you for using the Smart Library Management System.\n";
+    return 0;
+}
